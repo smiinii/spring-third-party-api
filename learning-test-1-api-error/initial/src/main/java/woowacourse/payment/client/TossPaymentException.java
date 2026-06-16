@@ -22,9 +22,17 @@ public class TossPaymentException extends RuntimeException {
    * Toss 에러 응답({code, message})을 도메인 예외로 매핑한다. 정의되지 않은 코드는 기본 TossPaymentException 으로 떨어진다.
    */
   public static TossPaymentException of(HttpStatusCode status, TossErrorResponse error) {
-    // TODO: error.code() 별로 알맞은 중첩 예외를 반환한다(코드↔예외 짝은 아래 중첩 클래스 참고).
-    //   정의되지 않은 코드는 기본 TossPaymentException 으로 반환한다.
-    return new TossPaymentException(status, error.code(), error.message());
+    return switch (error.code()) {
+      case "ALREADY_PROCESSED_PAYMENT" -> new AlreadyProcessed(error.message());
+      case "DUPLICATED_ORDER_ID" -> new DuplicatedOrder(error.message());
+      case "NOT_FOUND_PAYMENT_SESSION" -> new SessionExpired(error.message());
+      case "INVALID_REQUEST" -> new InvalidRequest(error.message());
+      case "UNAUTHORIZED_KEY", "INVALID_API_KEY" -> new GatewayConfig(error.message());
+      case "REJECT_CARD_PAYMENT" -> new CardRejected(error.message());
+      case "NOT_FOUND_PAYMENT" -> new PaymentNotFound(error.message());
+      case "FAILED_PAYMENT_INTERNAL_SYSTEM_PROCESSING" -> new Retryable(error.message());
+      default -> new TossPaymentException(status, error.code(), error.message());
+    };
   }
 
   public HttpStatusCode getStatus() {
