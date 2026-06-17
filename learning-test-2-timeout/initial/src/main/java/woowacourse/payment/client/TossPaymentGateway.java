@@ -32,6 +32,7 @@ public class TossPaymentGateway implements PaymentGateway {
         // TODO: 재시도 시 중복 결제를 막도록 Idempotency-Key 헤더를 싣는다.
         //  키는 재시도 간 동일한 값이어야 한다(주문 식별자 등). 예: .header("Idempotency-Key", confirmation.orderId())
         //  지금은 키가 없어, 타임아웃으로 끊긴 뒤 재시도하면 서버가 매번 새 결제로 처리한다.
+        .header("Idempotency-Key", confirmation.orderId())
         .body(request)
         .retrieve()
         .body(TossPaymentResponse.class);
