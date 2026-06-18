@@ -28,7 +28,11 @@ public class TokenBucketRateLimiter {
    * 토큰이 있으면 1개 소비하고 true, 없으면 false.
    */
   public synchronized boolean tryConsume() {
-    // TODO: refill() 후 토큰이 1개 이상이면 1개 소비하고 true, 아니면 false.
+    refill();
+    if (availableTokens >= 1) {
+      availableTokens -= 1;
+      return true;
+    }
     return false;
   }
 
@@ -36,15 +40,21 @@ public class TokenBucketRateLimiter {
    * 다음 요청이 통과 가능해질 때까지 권장 대기 시간(초). 토큰이 충분하면 0.
    */
   public synchronized long retryAfterSeconds() {
-    // TODO: refill() 후 토큰이 1개 이상이면 0, 부족하면 1개가 찰 때까지 필요한 초를 올림으로 반환한다.
-    return 0;
+    refill();
+    if (availableTokens >= 1) {
+      return 0;
+    }
+    return (long) Math.ceil((1 - availableTokens) / refillPerSec);
   }
 
   /**
    * 마지막 보충 이후 경과 시간에 비례해 토큰을 보충한다(상한 capacity).
    */
   private void refill() {
-    // TODO: 경과 시간(nanoClock - lastRefillNanos)에 비례해 토큰을 보충하고(상한 capacity), lastRefillNanos 를 갱신한다.
+    var now = nanoClock.getAsLong();
+    var elapsedSec = (now - lastRefillNanos) / 1_000_000_000.0;
+    availableTokens = Math.min(capacity, availableTokens + elapsedSec * refillPerSec);
+    lastRefillNanos = now;
   }
 
 }
